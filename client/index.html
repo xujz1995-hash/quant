@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Quant - 量化交易管理</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="logo">◈</span> AI Quant
+    </div>
+    <div class="nav-status">
+      <span id="trading-mode-badge" class="mode-badge mode-spot">现货</span>
+      <span id="health-dot" class="dot dot-off"></span>
+      <span id="health-text">检查中…</span>
+    </div>
+  </nav>
+
+  <main class="container">
+    <!-- 账户余额 -->
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <h2 style="margin-bottom:0">账户余额</h2>
+        <div style="display:flex;gap:0.5rem">
+          <button id="sync-balance" class="btn btn-secondary" style="padding:0.4rem 1rem;font-size:0.8rem">从币安同步</button>
+          <button id="refresh-balance" class="btn btn-secondary" style="padding:0.4rem 1rem;font-size:0.8rem">刷新</button>
+        </div>
+      </div>
+      <div id="balance-summary" class="holdings-summary">
+        <p style="color:var(--text-dim)">加载中...</p>
+      </div>
+      <div id="balance-detail" style="margin-top:0.5rem"></div>
+    </section>
+
+    <!-- 持仓汇总 -->
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <h2 style="margin-bottom:0">持仓汇总</h2>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+          <button id="sync-exchange" class="btn btn-secondary" style="padding:0.4rem 1rem;font-size:0.8rem">从币安同步</button>
+          <button id="refresh-holdings" class="btn btn-secondary" style="padding:0.4rem 1rem;font-size:0.8rem">刷新</button>
+          <button id="reset-data" class="btn btn-secondary" style="padding:0.4rem 1rem;font-size:0.8rem;color:var(--red)">清空数据</button>
+        </div>
+      </div>
+      <!-- 汇总指标卡片 -->
+      <div id="holdings-summary" class="holdings-summary"></div>
+      <!-- 持仓明细表 -->
+      <div id="holdings-list">
+        <p style="color:var(--text-dim)">加载中...</p>
+      </div>
+    </section>
+
+    <!-- 交易记录 -->
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <h2 style="margin-bottom:0">交易记录</h2>
+        <div style="display:flex;gap:0.5rem">
+          <button id="sync-trades" class="btn btn-secondary" style="padding:0.4rem 1rem;font-size:0.8rem">从币安同步</button>
+          <button id="refresh-positions" class="btn btn-secondary" style="padding:0.4rem 1rem;font-size:0.8rem">刷新</button>
+        </div>
+      </div>
+      <div id="positions-list">
+        <p style="color:var(--text-dim)">加载中...</p>
+      </div>
+    </section>
+
+    <!-- 执行交易周期 -->
+    <section class="card card-run">
+      <h2>执行交易周期</h2>
+      <form id="run-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="pair">交易对</label>
+            <select id="pair">
+              <option value="DOGE/USDT">DOGE/USDT</option>
+              <option value="BTC/USDT">BTC/USDT</option>
+              <option value="ETH/USDT">ETH/USDT</option>
+              <option value="SOL/USDT">SOL/USDT</option>
+              <option value="BNB/USDT">BNB/USDT</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="last_price">最新价格</label>
+            <input type="number" id="last_price" step="0.01" placeholder="自动获取，可留空">
+          </div>
+          <div class="form-group">
+            <label for="change_24h">24h 涨跌幅</label>
+            <input type="number" id="change_24h" step="0.001" placeholder="自动获取，可留空">
+          </div>
+          <div class="form-group">
+            <label for="volume_24h">24h 成交量</label>
+            <input type="number" id="volume_24h" step="1" placeholder="自动获取，可留空">
+          </div>
+          <div class="form-group">
+            <label for="funding_rate">资金费率</label>
+            <input type="number" id="funding_rate" step="0.0001" placeholder="自动获取，可留空">
+          </div>
+          <div class="form-group">
+            <label for="daily_pnl">当日盈亏 (USDT)</label>
+            <input type="number" id="daily_pnl" step="0.01" value="0">
+          </div>
+          <div class="form-group">
+            <label for="open_exposure">持仓敞口 (USDT)</label>
+            <input type="number" id="open_exposure" step="0.01" value="0">
+          </div>
+        </div>
+        <button type="submit" id="run-btn" class="btn btn-primary">
+          <span class="btn-text">执行交易周期</span>
+          <span class="btn-loading" hidden>正在执行，请稍候...</span>
+        </button>
+      </form>
+    </section>
+
+    <!-- 执行结果 -->
+    <section id="result-panel" class="card" hidden>
+      <h2>执行结果</h2>
+      <div id="result-summary" class="result-summary"></div>
+
+      <!-- 流水线步骤 -->
+      <div id="pipeline" class="pipeline"></div>
+
+      <!-- 执行日志 -->
+      <div id="logs-section" class="logs-section">
+        <h3>执行日志</h3>
+        <div id="logs-list" class="logs-list"></div>
+      </div>
+    </section>
+
+    <!-- 历史周期 -->
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <h2 style="margin-bottom:0">历史周期</h2>
+        <button id="refresh-cycles" class="btn btn-secondary" style="padding:0.4rem 1rem;font-size:0.8rem">刷新</button>
+      </div>
+      <div id="cycles-list">
+        <p style="color:var(--text-dim)">加载中...</p>
+      </div>
+      <div id="cycles-pagination" class="pagination"></div>
+    </section>
+  </main>
+
+  <!-- 周期详情弹窗 -->
+  <div id="cycle-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="margin:0">周期详情</h3>
+        <button class="modal-close" onclick="closeCycleModal()">&times;</button>
+      </div>
+      <div id="cycle-modal-body" class="modal-body">
+        <p style="color:var(--text-dim)">加载中...</p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <span>AI Quant 量化交易系统 &copy; 2026</span>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

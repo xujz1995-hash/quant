@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth 登录测试 - AI Quant</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .provider-section {
+            margin-bottom: 30px;
+        }
+        .provider-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 15px;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+        .btn-openai {
+            background: #10a37f;
+            color: white;
+        }
+        .btn-openai:hover {
+            background: #0d8c6d;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 163, 127, 0.4);
+        }
+        .btn-anthropic {
+            background: #d97757;
+            color: white;
+        }
+        .btn-anthropic:hover {
+            background: #c66647;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(217, 119, 87, 0.4);
+        }
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+        .profiles {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .profile-item {
+            background: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .profile-info {
+            flex: 1;
+        }
+        .profile-provider {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        .profile-meta {
+            font-size: 12px;
+            color: #666;
+        }
+        .profile-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-refresh {
+            background: #3b82f6;
+            color: white;
+        }
+        .btn-refresh:hover {
+            background: #2563eb;
+        }
+        .btn-delete {
+            background: #ef4444;
+            color: white;
+        }
+        .btn-delete:hover {
+            background: #dc2626;
+        }
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        .status-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .status-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 OAuth 登录</h1>
+        <p class="subtitle">参考 OpenClaw 实现的 Codex OAuth 登录功能</p>
+
+        <!-- LLM 认证模式切换 -->
+        <div class="provider-section" style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <div class="provider-title">🔑 LLM 认证模式</div>
+            <div id="authStatus" style="margin-bottom: 15px; font-size: 14px; color: #666;"></div>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="setAuthMode('api_key')">
+                    🔑 API Key
+                </button>
+                <button class="btn btn-secondary" style="flex: 1;" onclick="setAuthMode('oauth')">
+                    🔐 OAuth
+                </button>
+                <button class="btn btn-secondary" style="flex: 1;" onclick="setAuthMode('auto')">
+                    🤖 自动
+                </button>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="setAuthProvider('openai')">
+                    提供商: OpenAI
+                </button>
+                <button class="btn btn-secondary" style="flex: 1;" onclick="setAuthProvider('anthropic')">
+                    提供商: Anthropic
+                </button>
+            </div>
+        </div>
+
+        <div class="provider-section">
+            <div class="provider-title">OpenAI (ChatGPT/Codex)</div>
+            <button class="btn btn-openai" onclick="startOAuth('openai')">
+                🤖 使用 OpenAI 账号登录
+            </button>
+            <div style="margin-top: 10px; padding: 10px; background: #fef3c7; border-radius: 6px; font-size: 13px; color: #92400e;">
+                ⚠️ <strong>注意：</strong>OpenAI OAuth 需要注册的 Client ID。如果遇到认证错误，请使用 API Key 模式或 Anthropic OAuth。
+            </div>
+        </div>
+
+        <div class="provider-section">
+            <div class="provider-title">Anthropic (Claude)</div>
+            <button class="btn btn-anthropic" onclick="startOAuth('anthropic')">
+                🦾 使用 Anthropic 账号登录
+            </button>
+        </div>
+
+        <button class="btn btn-secondary" onclick="loadProfiles()">
+            🔄 刷新已登录账号
+        </button>
+
+        <div id="status" class="status hidden"></div>
+
+        <div class="profiles">
+            <div class="provider-title">已登录账号</div>
+            <div id="profilesList"></div>
+        </div>
+    </div>
+
+    <script>
+        async function startOAuth(provider) {
+            try {
+                showStatus('正在启动 OAuth 流程...', 'info');
+                
+                const response = await fetch(`/auth/start?provider=${provider}`);
+                const data = await response.json();
+                
+                if (data.auth_url) {
+                    showStatus(`请在新窗口中完成授权，state: ${data.state}`, 'info');
+                    window.open(data.auth_url, '_blank');
+                    
+                    setTimeout(() => {
+                        loadProfiles();
+                    }, 5000);
+                } else {
+                    showStatus('启动 OAuth 失败: ' + (data.error || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showStatus('请求失败: ' + error.message, 'error');
+            }
+        }
+
+        async function loadProfiles() {
+            try {
+                const response = await fetch('/auth/profiles');
+                const data = await response.json();
+                
+                const profilesList = document.getElementById('profilesList');
+                
+                if (data.profiles && data.profiles.length > 0) {
+                    profilesList.innerHTML = data.profiles.map(profile => `
+                        <div class="profile-item">
+                            <div class="profile-info">
+                                <div class="profile-provider">${profile.provider}</div>
+                                <div class="profile-meta">
+                                    ${profile.account_id ? `ID: ${profile.account_id}<br>` : ''}
+                                    过期时间: ${new Date(profile.expires_at).toLocaleString('zh-CN')}
+                                </div>
+                            </div>
+                            <div class="profile-actions">
+                                <button class="btn-small btn-refresh" onclick="refreshToken('${profile.provider}')">
+                                    刷新
+                                </button>
+                                <button class="btn-small btn-delete" onclick="deleteProfile('${profile.provider}')">
+                                    删除
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                    showStatus(`已加载 ${data.count} 个账号`, 'success');
+                } else {
+                    profilesList.innerHTML = '<p style="color: #666; text-align: center;">暂无已登录账号</p>';
+                }
+            } catch (error) {
+                showStatus('加载账号失败: ' + error.message, 'error');
+            }
+        }
+
+        async function refreshToken(provider) {
+            try {
+                showStatus(`正在刷新 ${provider} token...`, 'info');
+                
+                const response = await fetch(`/auth/profiles/${provider}/refresh`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus(`${provider} token 刷新成功`, 'success');
+                    loadProfiles();
+                } else {
+                    showStatus('刷新失败: ' + (data.error || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showStatus('刷新失败: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteProfile(provider) {
+            if (!confirm(`确定要删除 ${provider} 的登录信息吗？`)) {
+                return;
+            }
+            
+            try {
+                showStatus(`正在删除 ${provider}...`, 'info');
+                
+                const response = await fetch(`/auth/profiles/${provider}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus(`${provider} 已删除`, 'success');
+                    loadProfiles();
+                } else {
+                    showStatus('删除失败: ' + (data.error || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showStatus('删除失败: ' + error.message, 'error');
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status status-${type}`;
+            statusEl.classList.remove('hidden');
+            
+            if (type === 'success' || type === 'error') {
+                setTimeout(() => {
+                    statusEl.classList.add('hidden');
+                }, 5000);
+            }
+        }
+
+        // LLM 认证模式管理
+        async function loadAuthStatus() {
+            try {
+                const response = await fetch('/llm-auth/status');
+                const data = await response.json();
+                
+                const status = data.status;
+                const statusEl = document.getElementById('authStatus');
+                
+                let oauthStatus = status.oauth_available ? 
+                    `✅ OAuth 已登录 (${status.oauth_account_id || 'N/A'})` : 
+                    '❌ OAuth 未登录';
+                
+                statusEl.innerHTML = `
+                    <strong>当前模式:</strong> ${status.mode} | 
+                    <strong>提供商:</strong> ${status.provider} | 
+                    <strong>API Key:</strong> ${status.api_key ? '✅' : '❌'} | 
+                    <strong>OAuth:</strong> ${oauthStatus}
+                `;
+            } catch (error) {
+                console.error('加载认证状态失败:', error);
+            }
+        }
+
+        async function setAuthMode(mode) {
+            try {
+                showStatus(`正在切换认证模式到 ${mode}...`, 'info');
+                
+                const response = await fetch('/llm-auth/mode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus(`✅ ${data.message}`, 'success');
+                    loadAuthStatus();
+                } else {
+                    showStatus('切换失败: ' + (data.error || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showStatus('切换失败: ' + error.message, 'error');
+            }
+        }
+
+        async function setAuthProvider(provider) {
+            try {
+                showStatus(`正在切换提供商到 ${provider}...`, 'info');
+                
+                const response = await fetch('/llm-auth/provider', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus(`✅ ${data.message}`, 'success');
+                    loadAuthStatus();
+                } else {
+                    showStatus('切换失败: ' + (data.error || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showStatus('切换失败: ' + error.message, 'error');
+            }
+        }
+
+        // 页面加载时初始化
+        loadProfiles();
+        loadAuthStatus();
+        
+        // 每 30 秒刷新一次状态
+        setInterval(loadAuthStatus, 30000);
+    </script>
+</body>
+</html>
